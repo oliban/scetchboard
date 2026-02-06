@@ -1,0 +1,112 @@
+#!/bin/bash
+
+# Pre-commit hook: enforces TDD discipline
+# 1. All tests must pass before committing
+# 2. Every source file must have a corresponding test file
+
+set -e
+
+echo "🔍 Pre-commit check: verifying tests..."
+
+# ──────────────────────────────────────────────
+# Step 1: Check that staged source files have tests
+# ──────────────────────────────────────────────
+
+# Get staged .ts/.tsx files (exclude test files, configs, types, migrations, setup, CSS)
+STAGED_SOURCE_FILES=$(git diff --cached --name-only --diff-filter=ACM | \
+  grep -E '\.tsx?$' | \
+  grep -v '\.test\.' | \
+  grep -v '\.config\.' | \
+  grep -v 'src/test/' | \
+  grep -v 'src/migrations/' | \
+  grep -v 'src/lib/types\.ts' | \
+  grep -v 'next-env\.d\.ts' | \
+  grep -v 'src/app/layout\.tsx' | \
+  grep -v 'src/app/globals\.css' || true)
+
+if [ -n "$STAGED_SOURCE_FILES" ]; then
+  MISSING_TESTS=""
+
+  while IFS= read -r file; do
+    # Skip empty lines
+    [ -z "$file" ] && continue
+
+    dir=$(dirname "$file")
+    base=$(basename "$file" .ts)
+    base=$(basename "$base" .tsx)
+
+    # Determine expected test file location
+    TEST_FOUND=false
+
+    # Pattern 1: Direct sibling test (e.g., auth.ts -> auth.test.ts)
+    if [ -f "${dir}/${base}.test.ts" ] || [ -f "${dir}/${base}.test.tsx" ]; then
+      TEST_FOUND=true
+    fi
+
+    # Pattern 2: For API route files (route.ts), look for *.test.ts in same dir or parent
+    if [ "$base" = "route" ] && [ "$TEST_FOUND" = false ]; then
+      if ls "${dir}"/*.test.ts 1>/dev/null 2>&1; then
+        TEST_FOUND=true
+      fi
+      # Check parent directory (for [id]/route.ts -> parent has notes.test.ts)
+      parent=$(dirname "$dir")
+      if ls "${parent}"/*.test.ts 1>/dev/null 2>&1; then
+        TEST_FOUND=true
+      fi
+      # Check grandparent (for [id]/pin/route.ts -> grandparent has notes.test.ts)
+      grandparent=$(dirname "$parent")
+      if ls "${grandparent}"/*.test.ts 1>/dev/null 2>&1; then
+        TEST_FOUND=true
+      fi
+    fi
+
+    # Pattern 3: For page.tsx files (UI pages), look for test in same dir or parent
+    if [ "$base" = "page" ] && [ "$TEST_FOUND" = false ]; then
+      if ls "${dir}"/*.test.ts 1>/dev/null 2>&1 || ls "${dir}"/*.test.tsx 1>/dev/null 2>&1; then
+        TEST_FOUND=true
+      fi
+      parent=$(dirname "$dir")
+      if ls "${parent}"/*.test.ts 1>/dev/null 2>&1 || ls "${parent}"/*.test.tsx 1>/dev/null 2>&1; then
+        TEST_FOUND=true
+      fi
+    fi
+
+    # No generic fallback — every non-route, non-page source file
+    # must have an exact-match test file (e.g., foo.ts -> foo.test.ts)
+
+    if [ "$TEST_FOUND" = false ]; then
+      MISSING_TESTS="${MISSING_TESTS}\n  ❌ ${file}"
+    fi
+  done <<< "$STAGED_SOURCE_FILES"
+
+  if [ -n "$MISSING_TESTS" ]; then
+    echo ""
+    echo "❌ COMMIT BLOCKED: The following files have no corresponding test file:"
+    echo -e "$MISSING_TESTS"
+    echo ""
+    echo "TDD is mandatory — write tests before committing code."
+    echo "Expected test file patterns:"
+    echo "  src/lib/foo.ts        → src/lib/foo.test.ts"
+    echo "  src/app/api/x/route.ts → src/app/api/x/*.test.ts"
+    echo "  src/middleware.ts     → src/middleware.test.ts"
+    echo ""
+    exit 1
+  fi
+
+  echo "✅ All staged source files have corresponding tests."
+fi
+
+# ──────────────────────────────────────────────
+# Step 2: Run all tests — they must all pass
+# ──────────────────────────────────────────────
+
+echo "🧪 Running test suite..."
+
+if ! JWT_SECRET=test-secret-for-tests npm test 2>&1; then
+  echo ""
+  echo "❌ COMMIT BLOCKED: Tests failed. Fix failing tests before committing."
+  exit 1
+fi
+
+echo ""
+echo "✅ All tests passed. Commit allowed."
