@@ -86,7 +86,18 @@ export default function ResizableWorkspace({
         <span className="truncate font-medium" title={note.title || "Untitled"}>
           {note.title || "Untitled"}
         </span>
-        <span className="text-xs ml-2 shrink-0">{statusText}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs">{statusText}</span>
+          <button
+            onClick={() => {
+              window.open(`/api/notes/${note.id}/export`, "_blank");
+            }}
+            className="text-xs px-2 py-0.5 rounded border border-border hover:bg-muted transition-colors cursor-pointer"
+            title="Export as PDF"
+          >
+            Export PDF
+          </button>
+        </div>
       </div>
 
       {/* Desktop: resizable panels */}
