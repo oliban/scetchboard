@@ -22,7 +22,7 @@ export default function Sidebar({
   onNotesChange,
 }: SidebarProps) {
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
+  const { resolved, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<Note[] | null>(null);
   const [trashCount, setTrashCount] = useState(0);
@@ -72,13 +72,11 @@ export default function Sidebar({
     router.push("/login");
   }
 
-  function cycleTheme() {
-    const next = theme === "system" ? "light" : theme === "light" ? "dark" : "system";
-    setTheme(next);
+  function toggleTheme() {
+    setTheme(resolved === "light" ? "dark" : "light");
   }
 
-  const themeLabel =
-    theme === "system" ? "System" : theme === "light" ? "Light" : "Dark";
+  const themeLabel = resolved === "light" ? "Light" : "Dark";
 
   const displayedNotes = searchResults ?? notes;
 
@@ -124,7 +122,7 @@ export default function Sidebar({
         </Link>
 
         <button
-          onClick={cycleTheme}
+          onClick={toggleTheme}
           className="w-full text-left text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors rounded-lg px-2 py-2 cursor-pointer"
         >
           Theme: {themeLabel}
