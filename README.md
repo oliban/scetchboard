@@ -23,8 +23,6 @@ A personal note-taking web app that combines a markdown editor with an integrate
 | Auth | Email/password with JWT (jose) |
 | Email | Resend (password reset) |
 | Drawing | HTML5 Canvas |
-| Hosting | Fly.io |
-
 ## Getting Started
 
 ### Prerequisites
@@ -69,36 +67,6 @@ Open [http://localhost:3000](http://localhost:3000).
 npm run build
 npm start
 ```
-
-## Project Structure
-
-```
-src/
-├── app/
-│   ├── (app)/           # Authenticated app routes
-│   │   ├── page.tsx     # Main notes view
-│   │   └── trash/       # Trash view
-│   ├── (auth)/          # Auth pages (login, register, etc.)
-│   ├── api/             # API routes (auth, notes, images, trash)
-│   ├── globals.css      # Theme tokens and prose styles
-│   └── layout.tsx       # Root layout with theme provider
-├── components/
-│   ├── auth/            # Login, register, password reset forms
-│   ├── layout/          # Sidebar, ResizableWorkspace
-│   └── ui/              # MarkdownEditor, MarkdownPreview, SketchPad, etc.
-├── lib/                 # Auth, DB, hooks, types, PDF export
-└── middleware.ts        # Auth middleware
-```
-
-## Deployment
-
-Configured for Fly.io with SQLite on a persistent volume and Litestream for database replication.
-
-```bash
-fly deploy
-```
-
-See `fly.toml`, `Dockerfile`, and `litestream.yml` for deployment configuration.
 
 ## License
 
