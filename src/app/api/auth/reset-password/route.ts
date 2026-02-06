@@ -20,6 +20,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (password.length > 128) {
+      return NextResponse.json(
+        { error: "Password must be at most 128 characters" },
+        { status: 400 }
+      );
+    }
+
     const db = getDb();
 
     // Find valid, unused, non-expired token
@@ -39,12 +46,15 @@ export async function POST(request: Request) {
 
     const passwordHash = hashPassword(password);
 
-    // Update password and mark token as used in a transaction
+    // Update password, increment token_version, and mark token as used in a transaction
     const resetPassword = db.transaction(() => {
       db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
         passwordHash,
         resetToken.user_id
       );
+      db.prepare(
+        "UPDATE users SET token_version = token_version + 1 WHERE id = ?"
+      ).run(resetToken.user_id);
       db.prepare(
         "UPDATE password_reset_tokens SET used_at = datetime('now') WHERE id = ?"
       ).run(resetToken.id);

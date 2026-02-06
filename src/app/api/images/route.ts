@@ -54,6 +54,22 @@ export async function POST(request: Request) {
     );
   }
 
+  // Validate magic bytes to ensure file content matches claimed type
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const isValidImage = (
+    // PNG
+    (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) ||
+    // JPEG
+    (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) ||
+    // GIF
+    (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) ||
+    // WebP
+    (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 && buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50)
+  );
+  if (!isValidImage) {
+    return NextResponse.json({ error: 'Invalid image file' }, { status: 400 });
+  }
+
   const db = getDb();
 
   // Verify note ownership
@@ -80,8 +96,7 @@ export async function POST(request: Request) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
 
-  // Write file to disk
-  const buffer = Buffer.from(await file.arrayBuffer());
+  // Write file to disk (reuse buffer from magic bytes validation)
   fs.writeFileSync(filePath, buffer);
 
   // Insert record

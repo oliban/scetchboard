@@ -27,6 +27,13 @@ export function getDb(): Database.Database {
 
   runMigrations(db);
 
+  // Add token_version column for session invalidation (idempotent)
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0");
+  } catch {
+    // Column already exists, ignore
+  }
+
   return db;
 }
 

@@ -31,7 +31,10 @@ export async function GET(
   const { id } = await params;
   const db = getDb();
   const note = db
-    .prepare("SELECT * FROM notes WHERE id = ? AND user_id = ?")
+    .prepare(
+      `SELECT id, title, content, sketch_data, sketch_image, is_pinned, deleted_at, created_at, updated_at
+       FROM notes WHERE id = ? AND user_id = ? AND deleted_at IS NULL`
+    )
     .get(id, user.id) as Record<string, unknown> | undefined;
 
   if (!note) {
@@ -53,9 +56,9 @@ export async function PUT(
   const { id } = await params;
   const db = getDb();
 
-  // Verify ownership
+  // Verify ownership (only non-deleted notes can be updated)
   const existing = db
-    .prepare("SELECT id FROM notes WHERE id = ? AND user_id = ?")
+    .prepare("SELECT id FROM notes WHERE id = ? AND user_id = ? AND deleted_at IS NULL")
     .get(id, user.id);
   if (!existing) {
     return NextResponse.json({ error: "Note not found" }, { status: 404 });
@@ -63,6 +66,17 @@ export async function PUT(
 
   const body = await request.json();
   const { content, sketch_data, sketch_image } = body;
+
+  // Validate payload size limits
+  if (typeof content === 'string' && content.length > 500_000) {
+    return NextResponse.json({ error: 'Content exceeds maximum allowed size' }, { status: 413 });
+  }
+  if (typeof sketch_data === 'string' && sketch_data.length > 5_000_000) {
+    return NextResponse.json({ error: 'Content exceeds maximum allowed size' }, { status: 413 });
+  }
+  if (typeof sketch_image === 'string' && sketch_image.length > 5_000_000) {
+    return NextResponse.json({ error: 'Content exceeds maximum allowed size' }, { status: 413 });
+  }
 
   // Auto-generate title from content
   const title =
@@ -99,7 +113,12 @@ export async function PUT(
     `UPDATE notes SET ${updates.join(", ")} WHERE id = ? AND user_id = ?`
   ).run(...values);
 
-  const note = db.prepare("SELECT * FROM notes WHERE id = ?").get(id);
+  const note = db
+    .prepare(
+      `SELECT id, title, content, sketch_data, sketch_image, is_pinned, deleted_at, created_at, updated_at
+       FROM notes WHERE id = ?`
+    )
+    .get(id);
   return NextResponse.json(note);
 }
 
@@ -115,9 +134,9 @@ export async function DELETE(
   const { id } = await params;
   const db = getDb();
 
-  // Verify ownership
+  // Verify ownership (only non-deleted notes can be soft-deleted)
   const existing = db
-    .prepare("SELECT id FROM notes WHERE id = ? AND user_id = ?")
+    .prepare("SELECT id FROM notes WHERE id = ? AND user_id = ? AND deleted_at IS NULL")
     .get(id, user.id);
   if (!existing) {
     return NextResponse.json({ error: "Note not found" }, { status: 404 });

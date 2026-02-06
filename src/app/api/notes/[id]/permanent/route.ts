@@ -16,7 +16,7 @@ export async function DELETE(
   const db = getDb();
 
   const existing = db
-    .prepare("SELECT id FROM notes WHERE id = ? AND user_id = ?")
+    .prepare("SELECT id FROM notes WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL")
     .get(id, user.id);
   if (!existing) {
     return NextResponse.json({ error: "Note not found" }, { status: 404 });

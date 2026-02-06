@@ -18,7 +18,7 @@ export async function GET(
   const db = getDb();
 
   const note = db
-    .prepare("SELECT * FROM notes WHERE id = ? AND user_id = ?")
+    .prepare("SELECT id, title, content, sketch_image FROM notes WHERE id = ? AND user_id = ? AND deleted_at IS NULL")
     .get(id, user.id) as
     | {
         id: string;

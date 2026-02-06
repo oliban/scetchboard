@@ -15,7 +15,7 @@ export async function POST(
   const db = getDb();
 
   const note = db
-    .prepare("SELECT id, is_pinned FROM notes WHERE id = ? AND user_id = ?")
+    .prepare("SELECT id, is_pinned FROM notes WHERE id = ? AND user_id = ? AND deleted_at IS NULL")
     .get(id, user.id) as { id: string; is_pinned: number } | undefined;
 
   if (!note) {

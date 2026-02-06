@@ -1,9 +1,22 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { getDb } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "unknown";
+    const { success } = rateLimit(ip, { windowMs: 60000, max: 3 });
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const { email } = await request.json();
 
     if (!email) {
@@ -21,11 +34,17 @@ export async function POST(request: Request) {
     // Always return success to prevent email enumeration
     if (!user) {
       return NextResponse.json({
-        message: "If an account with that email exists, a reset link has been sent.",
+        message:
+          "If an account with that email exists, a reset link has been sent.",
       });
     }
 
-    const token = uuidv4();
+    // Invalidate all previous unused tokens for this user
+    db.prepare(
+      "UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE user_id = ? AND used_at IS NULL"
+    ).run(user.id);
+
+    const token = crypto.randomBytes(32).toString("hex");
     const id = uuidv4();
 
     // Token expires in 1 hour
@@ -52,11 +71,14 @@ export async function POST(request: Request) {
         console.error("Failed to send reset email:", emailError);
       }
     } else {
-      console.log("RESEND_API_KEY not set. Reset token:", token);
+      if (process.env.NODE_ENV === "development") {
+        console.log("RESEND_API_KEY not set. Reset token:", token);
+      }
     }
 
     return NextResponse.json({
-      message: "If an account with that email exists, a reset link has been sent.",
+      message:
+        "If an account with that email exists, a reset link has been sent.",
     });
   } catch (error) {
     console.error("Forgot password error:", error);

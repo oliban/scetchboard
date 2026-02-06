@@ -2,9 +2,21 @@ import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { getDb } from "@/lib/db";
 import { hashPassword, signToken, setAuthCookie } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "unknown";
+    const { success } = rateLimit(ip, { windowMs: 60000, max: 3 });
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const { email, password } = await request.json();
 
     // Validate email format
@@ -24,6 +36,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (password.length > 128) {
+      return NextResponse.json(
+        { error: "Password must be at most 128 characters" },
+        { status: 400 }
+      );
+    }
+
     const db = getDb();
 
     // Check if user already exists
@@ -32,8 +51,11 @@ export async function POST(request: Request) {
       .get(email);
     if (existing) {
       return NextResponse.json(
-        { error: "Email already registered" },
-        { status: 409 }
+        {
+          error:
+            "Unable to create account. Please try again or use a different email.",
+        },
+        { status: 400 }
       );
     }
 
@@ -60,15 +82,18 @@ export async function POST(request: Request) {
 
     createUser();
 
-    const token = await signToken(userId);
+    const token = await signToken(userId, 0);
     const response = NextResponse.json(
-      { token, user: { id: userId, email } },
+      { user: { id: userId, email } },
       { status: 201 }
     );
     response.cookies.set(setAuthCookie(token));
     return response;
   } catch (error) {
-    console.error("Register error:", error);
+    console.error(
+      "Register error:",
+      error instanceof Error ? error.message : "Unknown error"
+    );
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
