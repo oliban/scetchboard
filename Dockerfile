@@ -1,16 +1,16 @@
-FROM node:20-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev
-
-FROM node:20-alpine AS builder
+FROM --platform=linux/amd64 node:20-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:20-alpine AS runner
+FROM --platform=linux/amd64 node:20-alpine AS native
+WORKDIR /tmp
+RUN apk add --no-cache python3 make g++ && \
+    npm install better-sqlite3@12.6.2 --build-from-source
+
+FROM --platform=linux/amd64 node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -30,6 +30,9 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/src/migrations ./src/migrations
+
+# Copy natively built better-sqlite3 binary
+COPY --from=native /tmp/node_modules/better-sqlite3/build/Release/better_sqlite3.node ./node_modules/better-sqlite3/build/Release/better_sqlite3.node
 
 # Copy deployment config
 COPY litestream.yml /etc/litestream.yml
