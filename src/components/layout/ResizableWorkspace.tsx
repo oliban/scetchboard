@@ -14,6 +14,8 @@ import MarkdownEditor from "@/components/ui/MarkdownEditor";
 import MarkdownPreview from "@/components/ui/MarkdownPreview";
 import SketchPad from "@/components/ui/SketchPad";
 
+type DesktopTab = "edit" | "preview";
+
 interface ResizableWorkspaceProps {
   note: Note;
   onNoteUpdated: () => void;
@@ -32,9 +34,9 @@ export default function ResizableWorkspace({
     note.sketch_image
   );
   const prevNoteIdRef = useRef(note.id);
+  const [desktopTab, setDesktopTab] = useState<DesktopTab>("edit");
 
   const outerLayout = useDefaultLayout({ id: "workspace-outer" });
-  const innerLayout = useDefaultLayout({ id: "workspace-inner" });
 
   // When note changes, reset local state
   useEffect(() => {
@@ -96,20 +98,31 @@ export default function ResizableWorkspace({
           className="h-full"
         >
           <Panel id="notepad" defaultSize="50%" minSize="20%">
-            <Group
-              orientation="horizontal"
-              defaultLayout={innerLayout.defaultLayout}
-              onLayoutChanged={innerLayout.onLayoutChanged}
-              className="h-full"
-            >
-              <Panel id="editor" defaultSize="50%" minSize="20%">
-                <MarkdownEditor content={content} onChange={setContent} />
-              </Panel>
-              <Separator className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-              <Panel id="preview" defaultSize="50%" minSize="20%">
-                <MarkdownPreview content={content} />
-              </Panel>
-            </Group>
+            <div className="flex flex-col h-full">
+              <div className="flex border-b border-border shrink-0">
+                {(["edit", "preview"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setDesktopTab(t)}
+                    className={`flex-1 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                      desktopTab === t
+                        ? "text-primary border-b-2 border-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t === "edit" ? "Edit" : "View"}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 overflow-hidden">
+                {desktopTab === "edit" && (
+                  <MarkdownEditor content={content} onChange={setContent} />
+                )}
+                {desktopTab === "preview" && (
+                  <MarkdownPreview content={content} />
+                )}
+              </div>
+            </div>
           </Panel>
           <Separator className="w-1 bg-border hover:bg-primary/50 transition-colors" />
           <Panel id="sketchpad" defaultSize="50%" minSize="15%">
