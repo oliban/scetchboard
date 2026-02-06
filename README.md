@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SketchNotes
+
+A personal note-taking web app that combines a markdown editor with an integrated sketchpad. Each note has a split-view markdown editor with live preview and a canvas-based drawing tool — all with auto-save.
+
+## Features
+
+- **Markdown Editor** — Split-view with raw editor and live rendered preview
+- **Sketchpad** — Canvas-based drawing with pen, eraser, text, move, and pan tools
+- **Auto-save** — Debounced saving after changes
+- **Full-text Search** — SQLite FTS5 powered search-as-you-type
+- **Dark Mode** — System-aware theme with light/dark/system toggle
+- **Responsive** — Resizable panels on desktop, tabbed interface on mobile
+- **PDF Export** — Download notes as PDF with embedded sketch
+- **Trash** — Soft delete with restore capability
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 15, React 19, Tailwind CSS 4 |
+| Backend | Next.js API Routes |
+| Database | SQLite (better-sqlite3) + Litestream |
+| Auth | Email/password with JWT (jose) |
+| Email | Resend (password reset) |
+| Drawing | HTML5 Canvas |
+| Hosting | Fly.io |
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Installation
+
+```bash
+git clone git@github.com:oliban/scetchboard.git
+cd scetchboard
+npm install
+```
+
+### Environment
+
+Create a `.env.local` file:
+
+```env
+JWT_SECRET=your-secret-key
+DATABASE_URL=./data/sketchnotes.db
+```
+
+Optional (for password reset emails):
+
+```env
+RESEND_API_KEY=your-resend-key
+```
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Production Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/
+│   ├── (app)/           # Authenticated app routes
+│   │   ├── page.tsx     # Main notes view
+│   │   └── trash/       # Trash view
+│   ├── (auth)/          # Auth pages (login, register, etc.)
+│   ├── api/             # API routes (auth, notes, images, trash)
+│   ├── globals.css      # Theme tokens and prose styles
+│   └── layout.tsx       # Root layout with theme provider
+├── components/
+│   ├── auth/            # Login, register, password reset forms
+│   ├── layout/          # Sidebar, ResizableWorkspace
+│   └── ui/              # MarkdownEditor, MarkdownPreview, SketchPad, etc.
+├── lib/                 # Auth, DB, hooks, types, PDF export
+└── middleware.ts        # Auth middleware
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Configured for Fly.io with SQLite on a persistent volume and Litestream for database replication.
 
-## Deploy on Vercel
+```bash
+fly deploy
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+See `fly.toml`, `Dockerfile`, and `litestream.yml` for deployment configuration.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+Private project.
