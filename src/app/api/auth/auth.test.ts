@@ -1,8 +1,7 @@
 // @vitest-environment node
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
+/* eslint-disable @typescript-eslint/no-require-imports */
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "fs";
-import path from "path";
-import Database from "better-sqlite3";
 
 // Set env vars before any imports that read them
 process.env.JWT_SECRET = "test-secret-for-tests";
@@ -411,21 +410,6 @@ describe("Auth API Endpoints", () => {
       const res = await registerPOST(req);
       expect(res.status).toBe(201);
     });
-
-    function getResetToken(email: string): string {
-      const db = getDb();
-      const user = db
-        .prepare("SELECT id FROM users WHERE email = ?")
-        .get(email) as { id: string };
-
-      const tokenRow = db
-        .prepare(
-          "SELECT token FROM password_reset_tokens WHERE user_id = ? AND used_at IS NULL AND expires_at > datetime('now') ORDER BY rowid DESC LIMIT 1"
-        )
-        .get(user.id) as { token: string } | undefined;
-
-      return tokenRow!.token;
-    }
 
     function createResetToken(email: string): string {
       const db = getDb();

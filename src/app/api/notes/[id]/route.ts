@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
-import fs from "fs";
-import path from "path";
 
 function extractTitle(content: string): string {
   if (!content) return "";
