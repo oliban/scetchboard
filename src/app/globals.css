@@ -154,6 +154,22 @@ body {
   border-radius: 0.5rem;
 }
 
+.prose-custom .task-list-item {
+  list-style: none;
+}
+
+.prose-custom .task-list-item:has(input:checked) {
+  text-decoration: line-through;
+  color: var(--color-muted-foreground);
+}
+
 .prose-custom input[type="checkbox"] {
   margin-right: 0.5rem;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-primary);
+}
+
+.prose-custom input[type="checkbox"]:not(:disabled) {
+  cursor: pointer;
 }

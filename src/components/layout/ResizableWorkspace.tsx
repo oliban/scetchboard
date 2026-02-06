@@ -119,7 +119,7 @@ export default function ResizableWorkspace({
                   <MarkdownEditor content={content} onChange={setContent} />
                 )}
                 {desktopTab === "preview" && (
-                  <MarkdownPreview content={content} />
+                  <MarkdownPreview content={content} onChange={setContent} />
                 )}
               </div>
             </div>
@@ -185,7 +185,7 @@ function MobileTabs({
         {tab === "edit" && (
           <MarkdownEditor content={content} onChange={onContentChange} />
         )}
-        {tab === "preview" && <MarkdownPreview content={content} />}
+        {tab === "preview" && <MarkdownPreview content={content} onChange={onContentChange} />}
         {tab === "sketch" && (
           <SketchPad
             sketchData={sketchData}
