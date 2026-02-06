@@ -3,9 +3,11 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { getDb } from "./db";
 
-const JWT_SECRET_RAW = process.env.JWT_SECRET;
-if (!JWT_SECRET_RAW) throw new Error("JWT_SECRET environment variable must be set");
-const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_RAW);
+function getJwtSecret(): Uint8Array {
+  const raw = process.env.JWT_SECRET;
+  if (!raw) throw new Error("JWT_SECRET environment variable must be set");
+  return new TextEncoder().encode(raw);
+}
 
 const COOKIE_NAME =
   process.env.NODE_ENV === "production"
@@ -28,14 +30,14 @@ export async function signToken(
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 }
 
 export async function verifyToken(
   token: string
 ): Promise<{ sub: string; token_version?: number } | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     return payload as { sub: string; token_version?: number };
   } catch {
     return null;
